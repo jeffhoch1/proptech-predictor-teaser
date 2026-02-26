@@ -1,1 +1,1368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PropTechPredictor.ai — PropTech Market Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  :root {
+    --bg: #060b14;
+    --navy: #0a1220;
+    --card: #0f1a2e;
+    --border: #1a2840;
+    --accent: #e8c46a;
+    --blue: #3b82f6;
+    --text: #e2eaf5;
+    --muted: #5a6a85;
+    --red: #ef4444;
+    --yellow: #f59e0b;
+    --green: #22c55e;
+    --green2: #34d399;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* GRAIN OVERLAY */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 1000;
+    opacity: .4;
+  }
+
+  /* NAV */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    padding: 0 48px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(6, 11, 20, 0.85);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .nav-logo {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+
+  .logo-mark {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    font-weight: 900;
+    letter-spacing: -0.5px;
+  }
+
+  .logo-mark span { color: var(--accent); }
+
+  .logo-descriptor {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    border-left: 1px solid var(--border);
+    padding-left: 10px;
+  }
+
+  .nav-right {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+  }
+
+  .nav-badge {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: rgba(232,196,106,.08);
+    border: 1px solid rgba(232,196,106,.2);
+    border-radius: 20px;
+    padding: 4px 14px;
+  }
+
+  .nav-cta {
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    border-radius: 8px;
+    padding: 8px 20px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: all .2s;
+    letter-spacing: .3px;
+  }
+
+  .nav-cta:hover {
+    background: #f0ce7a;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(232,196,106,.3);
+  }
+
+  /* HERO */
+  .hero {
+    padding: 120px 48px 48px;
+    max-width: 1400px;
+    margin: 0 auto;
+    position: relative;
+  }
+
+  .hero-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 20px;
+    animation: fadeUp .6s ease both;
+  }
+
+  .eyebrow-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: .5; transform: scale(1.4); }
+  }
+
+  .hero-headline {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(42px, 5vw, 72px);
+    font-weight: 900;
+    line-height: 1.05;
+    letter-spacing: -1px;
+    max-width: 800px;
+    animation: fadeUp .6s .1s ease both;
+  }
+
+  .hero-headline .highlight {
+    color: var(--accent);
+    position: relative;
+    display: inline-block;
+  }
+
+  .hero-sub {
+    font-size: 18px;
+    color: var(--muted);
+    max-width: 560px;
+    line-height: 1.7;
+    margin-top: 20px;
+    animation: fadeUp .6s .2s ease both;
+  }
+
+  .hero-sub strong { color: var(--text); }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* STATS ROW */
+  .stats-row {
+    display: flex;
+    gap: 32px;
+    margin-top: 36px;
+    animation: fadeUp .6s .3s ease both;
+  }
+
+  .stat {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding-right: 32px;
+    border-right: 1px solid var(--border);
+  }
+
+  .stat:last-child { border-right: none; }
+
+  .stat-num {
+    font-family: 'Playfair Display', serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  .stat-label {
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: .3px;
+  }
+
+  /* MAP SECTION */
+  .map-section {
+    padding: 0 48px 48px;
+    max-width: 1400px;
+    margin: 0 auto;
+    animation: fadeUp .6s .4s ease both;
+  }
+
+  .map-container {
+    position: relative;
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    box-shadow: 0 24px 80px rgba(0,0,0,.6), 0 0 0 1px rgba(232,196,106,.05);
+  }
+
+  #map {
+    height: 580px;
+    width: 100%;
+    background: #0a1525;
+  }
+
+  /* MAP OVERLAY CONTROLS */
+  .map-controls {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    z-index: 500;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .map-legend {
+    background: rgba(6,11,20,.92);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    min-width: 200px;
+  }
+
+  .legend-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text);
+    padding: 3px 0;
+  }
+
+  .legend-swatch {
+    width: 28px;
+    height: 10px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+
+  .legend-swatch.red { background: rgba(239,68,68,.7); }
+  .legend-swatch.yellow { background: rgba(245,158,11,.7); }
+  .legend-swatch.green { background: rgba(34,197,94,.7); }
+
+  .legend-divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 8px 0;
+  }
+
+  .legend-pin {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    border: 2px solid rgba(255,255,255,.3);
+  }
+
+  /* MAP LIVE BADGE */
+  .map-live-badge {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    z-index: 500;
+    background: rgba(6,11,20,.92);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text);
+  }
+
+  .live-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--green2);
+    animation: pulse 2s infinite;
+  }
+
+  .live-label { color: var(--green2); font-weight: 600; }
+
+  /* MAP BOTTOM BAR */
+  .map-bottom-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 500;
+    background: linear-gradient(to top, rgba(6,11,20,.95) 60%, transparent);
+    padding: 32px 20px 16px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+  }
+
+  .map-insight {
+    font-size: 13px;
+    color: var(--muted);
+    max-width: 400px;
+  }
+
+  .map-insight strong { color: var(--accent); }
+
+  .map-counter {
+    display: flex;
+    gap: 16px;
+  }
+
+  .counter-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .counter-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+
+  /* POPUP STYLES */
+  .leaflet-popup-content-wrapper {
+    background: rgba(10,18,32,.97) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 8px 32px rgba(0,0,0,.6) !important;
+    padding: 0 !important;
+  }
+
+  .leaflet-popup-content {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 280px !important;
+  }
+
+  .leaflet-popup-tip-container { display: none; }
+
+  .popup-inner {
+    padding: 16px;
+  }
+
+  .popup-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    border-radius: 4px;
+    padding: 3px 8px;
+    margin-bottom: 10px;
+  }
+
+  .popup-status.red-zone {
+    background: rgba(239,68,68,.15);
+    color: #ef4444;
+    border: 1px solid rgba(239,68,68,.25);
+  }
+
+  .popup-status.yellow-zone {
+    background: rgba(245,158,11,.15);
+    color: #f59e0b;
+    border: 1px solid rgba(245,158,11,.25);
+  }
+
+  .popup-status.green-zone {
+    background: rgba(34,197,94,.15);
+    color: #22c55e;
+    border: 1px solid rgba(34,197,94,.25);
+  }
+
+  .popup-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1.3;
+    margin-bottom: 4px;
+    color: var(--text);
+  }
+
+  .popup-location {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .popup-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .popup-field {
+    background: rgba(255,255,255,.03);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 10px;
+  }
+
+  .popup-field-label {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: .5px;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+  }
+
+  .popup-field-val {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .popup-flags {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+
+  .popup-flag {
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-weight: 600;
+  }
+
+  .popup-flag.bead {
+    background: rgba(59,130,246,.15);
+    color: #60a5fa;
+    border: 1px solid rgba(59,130,246,.25);
+  }
+
+  .popup-flag.no-incumbent {
+    background: rgba(232,196,106,.12);
+    color: var(--accent);
+    border: 1px solid rgba(232,196,106,.2);
+  }
+
+  .popup-flag.incumbent {
+    background: rgba(107,114,128,.12);
+    color: #9ca3af;
+    border: 1px solid rgba(107,114,128,.2);
+  }
+
+  .popup-flag.fiber-gap {
+    background: rgba(239,68,68,.12);
+    color: #f87171;
+    border: 1px solid rgba(239,68,68,.2);
+  }
+
+  .popup-cta {
+    width: 100%;
+    padding: 9px;
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    border-radius: 7px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: all .2s;
+    letter-spacing: .3px;
+  }
+
+  .popup-cta:hover { background: #f0ce7a; }
+
+  /* VALUE PROPS */
+  .value-section {
+    padding: 64px 48px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  .section-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 16px;
+  }
+
+  .section-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 42px;
+    font-weight: 900;
+    line-height: 1.1;
+    max-width: 600px;
+    margin-bottom: 48px;
+  }
+
+  .value-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+
+  .value-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 28px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color .2s, transform .2s;
+  }
+
+  .value-card:hover {
+    border-color: rgba(232,196,106,.3);
+    transform: translateY(-2px);
+  }
+
+  .value-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+
+  .value-card.red-card::before { background: linear-gradient(90deg, var(--red), transparent); }
+  .value-card.yellow-card::before { background: linear-gradient(90deg, var(--yellow), transparent); }
+  .value-card.green-card::before { background: linear-gradient(90deg, var(--green), transparent); }
+
+  .value-icon {
+    font-size: 28px;
+    margin-bottom: 16px;
+  }
+
+  .value-title {
+    font-size: 17px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    line-height: 1.3;
+  }
+
+  .value-desc {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.7;
+  }
+
+  .value-desc strong { color: var(--text); }
+
+  /* SIGNAL SECTION */
+  .signal-section {
+    padding: 0 48px 64px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  .signal-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-top: 48px;
+  }
+
+  .signal-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 28px;
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+    transition: border-color .2s;
+  }
+
+  .signal-card:hover { border-color: rgba(59,130,246,.3); }
+
+  .signal-icon-wrap {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+    background: rgba(59,130,246,.1);
+    border: 1px solid rgba(59,130,246,.2);
+  }
+
+  .signal-title {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+
+  .signal-desc {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  .signal-source {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--blue);
+    margin-top: 8px;
+    letter-spacing: .5px;
+  }
+
+  /* CTA SECTION */
+  .cta-section {
+    padding: 80px 48px;
+    max-width: 1400px;
+    margin: 0 auto;
+    text-align: center;
+  }
+
+  .cta-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 64px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .cta-card::before {
+    content: '';
+    position: absolute;
+    top: -100px; left: 50%;
+    transform: translateX(-50%);
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, rgba(232,196,106,.06) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .cta-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 48px;
+    font-weight: 900;
+    line-height: 1.1;
+    margin-bottom: 16px;
+  }
+
+  .cta-title span { color: var(--accent); }
+
+  .cta-sub {
+    font-size: 17px;
+    color: var(--muted);
+    max-width: 500px;
+    margin: 0 auto 40px;
+    line-height: 1.7;
+  }
+
+  .cta-form {
+    display: flex;
+    gap: 12px;
+    max-width: 480px;
+    margin: 0 auto 16px;
+  }
+
+  .cta-input {
+    flex: 1;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 13px 18px;
+    font-size: 14px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    outline: none;
+    transition: border-color .2s;
+  }
+
+  .cta-input:focus { border-color: var(--accent); }
+  .cta-input::placeholder { color: var(--muted); }
+
+  .cta-btn {
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    border-radius: 10px;
+    padding: 13px 28px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: all .2s;
+    white-space: nowrap;
+  }
+
+  .cta-btn:hover {
+    background: #f0ce7a;
+    box-shadow: 0 8px 24px rgba(232,196,106,.3);
+  }
+
+  .cta-disclaimer {
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  /* FOOTER */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 24px 48px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .footer-logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 16px;
+    font-weight: 700;
+  }
+
+  .footer-logo span { color: var(--accent); }
+
+  /* TICKER */
+  .ticker-wrap {
+    overflow: hidden;
+    background: rgba(232,196,106,.05);
+    border-top: 1px solid rgba(232,196,106,.1);
+    border-bottom: 1px solid rgba(232,196,106,.1);
+    padding: 10px 0;
+    margin-bottom: 0;
+  }
+
+  .ticker {
+    display: flex;
+    gap: 0;
+    animation: ticker 40s linear infinite;
+    white-space: nowrap;
+  }
+
+  .ticker-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 32px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: .5px;
+    border-right: 1px solid var(--border);
+  }
+
+  .ticker-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .ticker-dot.red { background: var(--red); }
+  .ticker-dot.yellow { background: var(--yellow); }
+  .ticker-dot.green { background: var(--green); }
+
+  @keyframes ticker {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+
+  /* LEAFLET CUSTOMIZATION */
+  .leaflet-control-zoom {
+    border: 1px solid var(--border) !important;
+    border-radius: 8px !important;
+    overflow: hidden;
+  }
+
+  .leaflet-control-zoom a {
+    background: rgba(6,11,20,.92) !important;
+    color: var(--text) !important;
+    border-bottom: 1px solid var(--border) !important;
+  }
+
+  .leaflet-control-zoom a:hover {
+    background: var(--card) !important;
+  }
+
+  .leaflet-control-attribution {
+    background: rgba(6,11,20,.8) !important;
+    color: var(--muted) !important;
+    font-size: 9px !important;
+  }
+
+  .leaflet-control-attribution a { color: var(--muted) !important; }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">
+    <div class="logo-mark">Prop<span>Tech</span>Predictor</div>
+    <div class="logo-descriptor">PropTech Market Intelligence</div>
+  </div>
+  <div class="nav-right">
+    <div class="nav-badge">Early Access</div>
+    <button class="nav-cta" onclick="document.getElementById('cta').scrollIntoView({behavior:'smooth'})">Request Demo</button>
+  </div>
+</nav>
+
+<!-- TICKER -->
+<div style="margin-top:64px;">
+  <div class="ticker-wrap">
+    <div class="ticker">
+      <div class="ticker-item"><div class="ticker-dot red"></div> NEW LEAD · Pflugerville TX · 187 units · No fiber incumbent · BEAD eligible</div>
+      <div class="ticker-item"><div class="ticker-dot red"></div> NEW LEAD · Waco TX · 142 units · Underserved zone · Developer: Greystar</div>
+      <div class="ticker-item"><div class="ticker-dot yellow"></div> WATCH · Kyle TX · 224 units · Partial coverage · Permit filed Feb 18</div>
+      <div class="ticker-item"><div class="ticker-dot red"></div> NEW LEAD · Conroe TX · 96 units · Fiber gap confirmed · BEAD zone</div>
+      <div class="ticker-item"><div class="ticker-dot green"></div> MONITOR · Round Rock TX · 310 units · Served · Incumbent: AT&T Fiber</div>
+      <div class="ticker-item"><div class="ticker-dot red"></div> NEW LEAD · Leander TX · 158 units · No incumbent · Breaking ground Q3</div>
+      <div class="ticker-item"><div class="ticker-dot red"></div> NEW LEAD · Seguin TX · 88 units · Underserved · BEAD eligible</div>
+      <div class="ticker-item"><div class="ticker-dot yellow"></div> WATCH · Buda TX · 176 units · Partial fiber · Permit filed Feb 20</div>
+      <!-- duplicate for seamless loop -->
+      <div class="ticker-item"><div class="ticker-dot red"></div> NEW LEAD · Pflugerville TX · 187 units · No fiber incumbent · BEAD eligible</div>
+      <div class="ticker-item"><div class="ticker-dot red"></div> NEW LEAD · Waco TX · 142 units · Underserved zone · Developer: Greystar</div>
+      <div class="ticker-item"><div class="ticker-dot yellow"></div> WATCH · Kyle TX · 224 units · Partial coverage · Permit filed Feb 18</div>
+      <div class="ticker-item"><div class="ticker-dot red"></div> NEW LEAD · Conroe TX · 96 units · Fiber gap confirmed · BEAD zone</div>
+      <div class="ticker-item"><div class="ticker-dot green"></div> MONITOR · Round Rock TX · 310 units · Served · Incumbent: AT&T Fiber</div>
+      <div class="ticker-item"><div class="ticker-dot red"></div> NEW LEAD · Leander TX · 158 units · No incumbent · Breaking ground Q3</div>
+      <div class="ticker-item"><div class="ticker-dot red"></div> NEW LEAD · Seguin TX · 88 units · Underserved · BEAD eligible</div>
+      <div class="ticker-item"><div class="ticker-dot yellow"></div> WATCH · Buda TX · 176 units · Partial fiber · Permit filed Feb 20</div>
+    </div>
+  </div>
+</div>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-eyebrow">
+    <div class="eyebrow-dot"></div>
+    Broadband Intelligence · Texas Growth Corridor
+  </div>
+  <h1 class="hero-headline">
+    Find the deals your<br>competitors <span class="highlight">can't see yet.</span>
+  </h1>
+  <p class="hero-sub">
+    PropTechPredictor maps <strong>every new multifamily development</strong> against live FCC broadband coverage data — so you know exactly which projects are in fiber deserts before anyone else makes a call.
+  </p>
+  <div class="stats-row">
+    <div class="stat">
+      <div class="stat-num">340+</div>
+      <div class="stat-label">Active leads in TX secondary markets</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">68%</div>
+      <div class="stat-label">In underserved or fiber-gap zones</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">$42B</div>
+      <div class="stat-label">BEAD funding flowing to these markets</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">24hr</div>
+      <div class="stat-label">Average lead detection vs permit filing</div>
+    </div>
+  </div>
+</section>
+
+<!-- MAP -->
+<section class="map-section">
+  <div class="map-container">
+    <div id="map"></div>
+
+    <!-- LEGEND -->
+    <div class="map-controls">
+      <div class="map-legend">
+        <div class="legend-title">Broadband Coverage</div>
+        <div class="legend-item">
+          <div class="legend-swatch red"></div>
+          Underserved — No fiber incumbent
+        </div>
+        <div class="legend-item">
+          <div class="legend-swatch yellow"></div>
+          Partial — Limited coverage
+        </div>
+        <div class="legend-item">
+          <div class="legend-swatch green"></div>
+          Served — Incumbent present
+        </div>
+        <hr class="legend-divider">
+        <div class="legend-title">Development Pins</div>
+        <div class="legend-item">
+          <div class="legend-pin" style="background:#ef4444;"></div>
+          High Priority Lead
+        </div>
+        <div class="legend-item">
+          <div class="legend-pin" style="background:#f59e0b;"></div>
+          Watch — Partial coverage
+        </div>
+        <div class="legend-item">
+          <div class="legend-pin" style="background:#6b7280;"></div>
+          Monitor — Served market
+        </div>
+      </div>
+    </div>
+
+    <!-- LIVE BADGE -->
+    <div class="map-live-badge">
+      <div class="live-dot"></div>
+      <span class="live-label">LIVE</span>
+      FCC Broadband Data · Updated Feb 17, 2026
+    </div>
+
+    <!-- BOTTOM BAR -->
+    <div class="map-bottom-bar">
+      <div class="map-insight">
+        <strong>Red zones = open opportunities.</strong> No incumbent ISP means no bulk agreement to displace. First call wins the contract.
+      </div>
+      <div class="map-counter">
+        <div class="counter-item">
+          <div class="counter-dot" style="background:var(--red)"></div>
+          23 High Priority
+        </div>
+        <div class="counter-item">
+          <div class="counter-dot" style="background:var(--yellow)"></div>
+          14 Watch List
+        </div>
+        <div class="counter-item">
+          <div class="counter-dot" style="background:#6b7280"></div>
+          8 Monitored
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- VALUE PROPS -->
+<section class="value-section">
+  <div class="section-label">Why It Matters</div>
+  <h2 class="section-title">The MSAs are a red ocean. The growth ring is wide open.</h2>
+  <div class="value-grid">
+    <div class="value-card red-card">
+      <div class="value-icon">🔴</div>
+      <div class="value-title">Red Zone = No Incumbent</div>
+      <div class="value-desc">An underserved development has <strong>no bulk WiFi agreement in place.</strong> No competitor to displace. No pricing war. Just an open door and a developer who needs a solution before residents move in.</div>
+    </div>
+    <div class="value-card yellow-card">
+      <div class="value-icon">💰</div>
+      <div class="value-title">BEAD Money Changes the Math</div>
+      <div class="value-desc">Secondary markets are where <strong>$42 billion in federal broadband funding</strong> is flowing. PropTechPredictor flags BEAD-eligible zones so you walk in with a funding story, not just a product pitch.</div>
+    </div>
+    <div class="value-card green-card">
+      <div class="value-icon">⚡</div>
+      <div class="value-title">24 Hours Before Anyone Else</div>
+      <div class="value-desc">We monitor permit filings, developer announcements, and local press <strong>across 500+ municipalities</strong> — including the Pflugervilles and Wacos your competitors aren't watching yet.</div>
+    </div>
+  </div>
+</section>
+
+<!-- SIGNALS -->
+<section class="signal-section">
+  <div class="section-label">Intelligence Layers</div>
+  <h2 class="section-title" style="max-width:500px;">Four signals. One actionable lead score.</h2>
+  <div class="signal-grid">
+    <div class="signal-card">
+      <div class="signal-icon-wrap">📡</div>
+      <div>
+        <div class="signal-title">FCC Broadband Coverage</div>
+        <div class="signal-desc">Real-time fiber, cable, and fixed wireless availability mapped to every new development address. Know the coverage status before you make the call.</div>
+        <div class="signal-source">SOURCE: FCC National Broadband Map · Updated continuously</div>
+      </div>
+    </div>
+    <div class="signal-card">
+      <div class="signal-icon-wrap">🏗️</div>
+      <div>
+        <div class="signal-title">Multifamily Permit Intelligence</div>
+        <div class="signal-desc">New construction permits from 500+ municipalities, normalized and scored. Unit count, developer, delivery timeline — everything you need to prioritize outreach.</div>
+        <div class="signal-source">SOURCE: Municipal open data · State permit aggregators · RSS monitoring</div>
+      </div>
+    </div>
+    <div class="signal-card">
+      <div class="signal-icon-wrap">💵</div>
+      <div>
+        <div class="signal-title">BEAD Funding Eligibility</div>
+        <div class="signal-desc">Every lead is cross-referenced against NTIA's BEAD program geography. Flag projects where federal broadband grants could offset infrastructure costs for the developer.</div>
+        <div class="signal-source">SOURCE: NTIA BEAD Program · State broadband office feeds</div>
+      </div>
+    </div>
+    <div class="signal-card">
+      <div class="signal-icon-wrap">🏢</div>
+      <div>
+        <div class="signal-title">Developer Intelligence</div>
+        <div class="signal-desc">NMHC-ranked developers building across multiple markets. Win one relationship and you've potentially locked up an entire pipeline of projects before they hit the permit stage.</div>
+        <div class="signal-source">SOURCE: NMHC Top 50 rankings · Developer news monitoring</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section" id="cta">
+  <div class="cta-card">
+    <div class="section-label" style="margin-bottom:12px;">Early Access Program</div>
+    <h2 class="cta-title">Be first.<br>Every <span>single</span> time.</h2>
+    <p class="cta-sub">We're onboarding a small group of WiFi and telecom partners to shape the product. Limited spots available.</p>
+    <div class="cta-form">
+      <input class="cta-input" type="email" placeholder="your@company.com" id="email-input" />
+      <button class="cta-btn" onclick="handleSubmit()">Request Access →</button>
+    </div>
+    <div class="cta-disclaimer" id="cta-msg">No commitment required. We'll reach out within 24 hours.</div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">Prop<span>Tech</span>Predictor</div>
+  <div>PropTech Market Intelligence · © 2026</div>
+  <div>PropTechPredictor.ai</div>
+</footer>
+
+<script>
+// ============================================================
+// MAP INITIALIZATION
+// ============================================================
+const map = L.map('map', {
+  center: [30.5, -97.8],
+  zoom: 8,
+  zoomControl: true,
+  scrollWheelZoom: true
+});
+
+// Dark map tiles
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+  attribution: '© OpenStreetMap contributors © CARTO',
+  subdomains: 'abcd',
+  maxZoom: 19
+}).addTo(map);
+
+// ============================================================
+// BROADBAND COVERAGE ZONES (simulated FCC data overlay)
+// These represent real broadband coverage patterns in TX
+// ============================================================
+const coverageZones = [
+  // RED ZONES - Underserved secondary/tertiary markets
+  { coords: [30.434, -97.620], radius: 8000, color: '#ef4444', label: 'Pflugerville', status: 'red' },
+  { coords: [31.549, -97.145], radius: 12000, color: '#ef4444', label: 'Waco', status: 'red' },
+  { coords: [29.892, -97.862], radius: 7000, color: '#ef4444', label: 'Kyle', status: 'yellow' },
+  { coords: [30.315, -97.679], radius: 6000, color: '#ef4444', label: 'Buda', status: 'red' },
+  { coords: [30.575, -97.856], radius: 9000, color: '#ef4444', label: 'Leander', status: 'red' },
+  { coords: [30.157, -97.604], radius: 5000, color: '#f59e0b', label: 'San Marcos area', status: 'yellow' },
+  { coords: [29.701, -98.124], radius: 7500, color: '#ef4444', label: 'Seguin area', status: 'red' },
+  { coords: [30.326, -95.456], radius: 11000, color: '#ef4444', label: 'Conroe', status: 'red' },
+  { coords: [30.688, -97.678], radius: 6500, color: '#ef4444', label: 'Georgetown outskirts', status: 'red' },
+  { coords: [31.09, -97.36], radius: 8500, color: '#f59e0b', label: 'Killeen area', status: 'yellow' },
+
+  // YELLOW ZONES - Partial coverage
+  { coords: [30.508, -97.679], radius: 6000, color: '#f59e0b', label: 'Round Rock partial', status: 'yellow' },
+  { coords: [30.221, -97.770], radius: 5500, color: '#f59e0b', label: 'South Austin outskirts', status: 'yellow' },
+
+  // GREEN ZONES - Austin MSA (served/competitive)
+  { coords: [30.267, -97.743], radius: 14000, color: '#22c55e', label: 'Austin Core', status: 'green' },
+  { coords: [30.370, -97.757], radius: 8000, color: '#22c55e', label: 'North Austin', status: 'green' },
+  { coords: [30.506, -97.820], radius: 7000, color: '#22c55e', label: 'Cedar Park', status: 'green' },
+];
+
+// Draw coverage zones
+coverageZones.forEach(zone => {
+  const opacity = zone.status === 'red' ? 0.18 : zone.status === 'yellow' ? 0.15 : 0.12;
+  L.circle(zone.coords, {
+    radius: zone.radius,
+    fillColor: zone.color,
+    fillOpacity: opacity,
+    color: zone.color,
+    weight: 1,
+    opacity: 0.3
+  }).addTo(map);
+});
+
+// ============================================================
+// DEVELOPMENT PINS
+// ============================================================
+const developments = [
+  {
+    coords: [30.434, -97.620],
+    city: 'Pflugerville, TX',
+    name: 'Pflugerville Crossing',
+    units: 187,
+    developer: 'Presidium Group',
+    status: 'red',
+    permit: 'Feb 14, 2026',
+    delivery: 'Q4 2027',
+    bead: true,
+    incumbent: false,
+    type: 'Garden Style'
+  },
+  {
+    coords: [31.549, -97.145],
+    city: 'Waco, TX',
+    name: 'Waco Commons',
+    units: 142,
+    developer: 'Greystar',
+    status: 'red',
+    permit: 'Feb 10, 2026',
+    delivery: 'Q2 2027',
+    bead: true,
+    incumbent: false,
+    type: 'Midrise'
+  },
+  {
+    coords: [29.892, -97.862],
+    city: 'Kyle, TX',
+    name: 'Kyle Station',
+    units: 224,
+    developer: 'NRP Group',
+    status: 'yellow',
+    permit: 'Feb 18, 2026',
+    delivery: 'Q1 2028',
+    bead: false,
+    incumbent: 'partial',
+    type: 'Garden Style'
+  },
+  {
+    coords: [30.315, -97.679],
+    city: 'Buda, TX',
+    name: 'Buda Ridge',
+    units: 176,
+    developer: 'StreetLights Residential',
+    status: 'red',
+    permit: 'Feb 20, 2026',
+    delivery: 'Q3 2027',
+    bead: true,
+    incumbent: false,
+    type: 'Garden Style'
+  },
+  {
+    coords: [30.575, -97.856],
+    city: 'Leander, TX',
+    name: 'Leander Heights',
+    units: 158,
+    developer: 'Journeyman Group',
+    status: 'red',
+    permit: 'Feb 8, 2026',
+    delivery: 'Q2 2027',
+    bead: true,
+    incumbent: false,
+    type: 'Wrap'
+  },
+  {
+    coords: [30.326, -95.456],
+    city: 'Conroe, TX',
+    name: 'Conroe Reserve',
+    units: 96,
+    developer: 'Alliance Residential',
+    status: 'red',
+    permit: 'Feb 5, 2026',
+    delivery: 'Q4 2027',
+    bead: true,
+    incumbent: false,
+    type: 'Garden Style'
+  },
+  {
+    coords: [30.508, -97.679],
+    city: 'Round Rock, TX',
+    name: 'Round Rock Town Center',
+    units: 310,
+    developer: 'Wood Partners',
+    status: 'green',
+    permit: 'Jan 28, 2026',
+    delivery: 'Q1 2028',
+    bead: false,
+    incumbent: 'AT&T Fiber',
+    type: 'Mixed Use'
+  },
+  {
+    coords: [29.701, -98.124],
+    city: 'Seguin, TX',
+    name: 'Seguin Commons',
+    units: 88,
+    developer: 'LMC',
+    status: 'red',
+    permit: 'Feb 12, 2026',
+    delivery: 'Q3 2027',
+    bead: true,
+    incumbent: false,
+    type: 'Garden Style'
+  },
+  {
+    coords: [30.688, -97.678],
+    city: 'Georgetown, TX',
+    name: 'Georgetown Preserve',
+    units: 203,
+    developer: 'Greystar',
+    status: 'red',
+    permit: 'Feb 16, 2026',
+    delivery: 'Q2 2027',
+    bead: true,
+    incumbent: false,
+    type: 'Garden Style'
+  },
+  {
+    coords: [31.09, -97.36],
+    city: 'Killeen, TX',
+    name: 'Killeen Gateway',
+    units: 134,
+    developer: 'Embrey Partners',
+    status: 'yellow',
+    permit: 'Feb 3, 2026',
+    delivery: 'Q1 2028',
+    bead: false,
+    incumbent: 'partial',
+    type: 'Midrise'
+  },
+];
+
+// Custom pin icons
+function createPinIcon(status) {
+  const colors = { red: '#ef4444', yellow: '#f59e0b', green: '#6b7280' };
+  const color = colors[status] || colors.red;
+  const size = status === 'red' ? 16 : 13;
+  return L.divIcon({
+    className: '',
+    html: `
+      <div style="
+        width:${size}px; height:${size}px;
+        border-radius:50%;
+        background:${color};
+        border:2px solid rgba(255,255,255,0.4);
+        box-shadow: 0 0 0 3px ${color}33, 0 2px 8px rgba(0,0,0,0.5);
+        position:relative;
+        ${status === 'red' ? `animation: pinPulse 2s infinite;` : ''}
+      "></div>
+      <style>
+        @keyframes pinPulse {
+          0%,100% { box-shadow: 0 0 0 3px rgba(239,68,68,0.2), 0 2px 8px rgba(0,0,0,0.5); }
+          50% { box-shadow: 0 0 0 8px rgba(239,68,68,0.1), 0 2px 8px rgba(0,0,0,0.5); }
+        }
+      </style>
+    `,
+    iconSize: [size, size],
+    iconAnchor: [size/2, size/2]
+  });
+}
+
+function buildPopup(d) {
+  const statusLabel = d.status === 'red' ? '🔴 OPEN OPPORTUNITY' : d.status === 'yellow' ? '🟡 PARTIAL COVERAGE' : '⚫ MARKET SERVED';
+  const statusClass = d.status === 'red' ? 'red-zone' : d.status === 'yellow' ? 'yellow-zone' : 'green-zone';
+  const incumbentFlag = d.incumbent === false
+    ? '<span class="popup-flag no-incumbent">✓ No Incumbent</span>'
+    : d.incumbent === 'partial'
+    ? '<span class="popup-flag incumbent">⚠ Partial Coverage</span>'
+    : `<span class="popup-flag incumbent">Incumbent: ${d.incumbent}</span>`;
+  const beadFlag = d.bead ? '<span class="popup-flag bead">💵 BEAD Eligible</span>' : '';
+  const fiberFlag = d.status === 'red' ? '<span class="popup-flag fiber-gap">📡 Fiber Gap</span>' : '';
+
+  return `
+    <div class="popup-inner">
+      <div class="popup-status ${statusClass}">${statusLabel}</div>
+      <div class="popup-title">${d.name}</div>
+      <div class="popup-location">📍 ${d.city}</div>
+      <div class="popup-grid">
+        <div class="popup-field">
+          <div class="popup-field-label">Units</div>
+          <div class="popup-field-val">${d.units}</div>
+        </div>
+        <div class="popup-field">
+          <div class="popup-field-label">Type</div>
+          <div class="popup-field-val">${d.type}</div>
+        </div>
+        <div class="popup-field">
+          <div class="popup-field-label">Developer</div>
+          <div class="popup-field-val" style="font-size:11px;">${d.developer}</div>
+        </div>
+        <div class="popup-field">
+          <div class="popup-field-label">Delivery</div>
+          <div class="popup-field-val">${d.delivery}</div>
+        </div>
+      </div>
+      <div class="popup-flags">
+        ${incumbentFlag}
+        ${beadFlag}
+        ${fiberFlag}
+      </div>
+      <button class="popup-cta" onclick="document.getElementById('cta').scrollIntoView({behavior:'smooth'})">
+        Request Access to Full Intelligence →
+      </button>
+    </div>
+  `;
+}
+
+// Add pins to map
+developments.forEach(d => {
+  const marker = L.marker(d.coords, { icon: createPinIcon(d.status) }).addTo(map);
+  marker.bindPopup(buildPopup(d), {
+    maxWidth: 300,
+    minWidth: 280,
+    className: 'custom-popup'
+  });
+});
+
+// ============================================================
+// CTA FORM
+// ============================================================
+function handleSubmit() {
+  const email = document.getElementById('email-input').value;
+  const msg = document.getElementById('cta-msg');
+  if (email && email.includes('@')) {
+    msg.innerHTML = '<span style="color:#34d399;">✓ You\'re on the list. We\'ll be in touch within 24 hours.</span>';
+    document.getElementById('email-input').value = '';
+  } else {
+    msg.innerHTML = '<span style="color:#ef4444;">Please enter a valid email address.</span>';
+  }
+}
+
+// Nav items
+document.querySelectorAll('.nav-item')?.forEach(item => {
+  item.addEventListener('click', () => {
+    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+    item.classList.add('active');
+  });
+});
+</script>
+</body>
+</html>
 
